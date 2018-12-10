@@ -107,7 +107,7 @@ public:
 template<typename T>
 class Handle
 {
-    T* _p;
+    T* _p = nullptr;
 
 protected:
     T *get_ptr() const {
@@ -118,17 +118,29 @@ public:
     Handle(T *p) : _p(p) {}
 
     Handle(const Handle &rhs) {
-        _p = rhs._p->clone();
+        if(rhs._p != nullptr)
+            _p = rhs._p->clone();
     }
 
     Handle &operator=(const Handle &rhs) {
-        delete _p;
-        _p = rhs._p->clone();
+        // delete _p;
+        // _p = rhs._p->clone();
+        Handle<T> that(rhs);
+        swap(rhs);
         return *this;
     }
 
     bool operator==(const Handle &rhs) const {
-        return *(_p) == *(rhs._p);
+        //sanity check
+        if(_p == nullptr || rhs._p == nullptr)
+            return _p == rhs._p;
+        else
+            return *(_p) == *(rhs._p);
+    }
+
+    void swap(Handle& rhs)
+    {
+        std::swap(_p, rhs._p);
     }
 
     ~Handle()

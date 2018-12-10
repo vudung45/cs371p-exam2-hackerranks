@@ -82,6 +82,12 @@ public:
     }
 
     my_vector &operator=(const my_vector &rhs) {
+        // if (rhs.size() != size()) {
+        //     delete _b;
+        //     _b = new T[rhs.size()];
+        //     _e = _b + rhs.size();
+        // }
+        // copy(rhs.begin(), rhs.end(), _b);
         my_vector that(rhs);
         swap(that);
         return *this;
