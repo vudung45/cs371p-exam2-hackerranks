@@ -1,85 +1,97 @@
 template <typename T> class my_vector {
 
 private:
-  T* _b = nullptr;
-  T* _e = nullptr;
+    T* _b = nullptr;
+    T* _e = nullptr;
 
 public:
-  using iterator = T*;
-  
-  explicit my_vector(size_t s = 0, const T &v = T()) {
-    if (s != 0)
-      _b = new T[s];
-    _e = _b + s;
-    fill(begin(), end(), v);
-  }
+    using iterator = T*;
 
-  my_vector(initializer_list<T> rhs) {
-    if (rhs.size() != 0)
-      _b = new T[rhs.size()];
-    _e = _b + rhs.size();
-    copy(rhs.begin(), rhs.end(), begin());
-  }
-
-  my_vector(my_vector&& rhs)
-  {
-      swap(rhs);
-  }
-
-  my_vector(const my_vector &rhs) {
-    if (rhs.size() != 0)
-      _b = new T[rhs.size()];
-    _e = _b + rhs.size();
-    copy(rhs.begin(), rhs.end(), begin());
-  }
-
-  my_vector &operator=(const my_vector &rhs) {
-    if (rhs.size() != size()) {
-      delete _b;
-      _b = new T[rhs.size()];
-      _e = _b + rhs.size();
+    explicit my_vector(size_t s = 0, const T &v = T()) {
+        if (s != 0)
+            _b = new T[s];
+        _e = _b + s;
+        fill(begin(), end(), v);
     }
-    copy(rhs.begin(), rhs.end(), _b);
-    return *this;
-  }
 
-  my_vector &operator=(my_vector &&rhs) {
-    my_vector that(move(rhs));
-    swap(that);
-    return *this;
-  }
+    my_vector(initializer_list<T> rhs) {
+        if (rhs.size() != 0)
+            _b = new T[rhs.size()];
+        _e = _b + rhs.size();
+        copy(rhs.begin(), rhs.end(), begin());
+    }
 
-  bool operator==(const my_vector &rhs) const {
-    return rhs.size() == size() && equal(rhs.begin(), rhs.end(), _b);
-  }
+    my_vector(my_vector&& rhs)
+    {
+        swap(rhs);
+    }
 
-  bool operator<(const my_vector &rhs) const {
-    return lexicographical_compare(begin(),end(), rhs.begin(), rhs.end());
-  }
+    my_vector(const my_vector &rhs) {
+        if (rhs.size() != 0)
+            _b = new T[rhs.size()];
+        _e = _b + rhs.size();
+        copy(rhs.begin(), rhs.end(), begin());
+    }
 
-  ~my_vector() { delete[] _b; }
+    my_vector &operator=(const my_vector &rhs) {
+        if (rhs.size() != size()) {
+            delete _b;
+            _b = new T[rhs.size()];
+            _e = _b + rhs.size();
+        }
+        copy(rhs.begin(), rhs.end(), _b);
+        return *this;
+    }
 
-  T &operator[](size_t i) {
-    assert(i < size());
-    return _b[i];
-  } //  warning: Returning null reference
+    my_vector &operator=(my_vector &&rhs) {
+        my_vector that(move(rhs));
+        swap(that);
+        return *this;
+    }
 
-  const T &operator[](size_t i) const {
-    return (*const_cast<my_vector *>(this))[i];
-  }
+    bool operator==(const my_vector &rhs) const {
+        return rhs.size() == size() && equal(rhs.begin(), rhs.end(), _b);
+    }
 
-  T *begin() { return _b; }
+    bool operator<(const my_vector &rhs) const {
+        return lexicographical_compare(begin(),end(), rhs.begin(), rhs.end());
+    }
 
-  const T *begin() const { return const_cast<my_vector *>(this)->begin(); }
+    ~my_vector() {
+        delete[] _b;
+    }
 
-  T *end() { return _e; }
+    T &operator[](size_t i) {
+        assert(i < size());
+        return _b[i];
+    } //  warning: Returning null reference
 
-  const T *end() const { return const_cast<my_vector *>(this)->end(); }
+    const T &operator[](size_t i) const {
+        return (*const_cast<my_vector *>(this))[i];
+    }
 
-  size_t size() const { return _e - _b; }
+    T *begin() {
+        return _b;
+    }
 
-  void swap(my_vector &rhs) {
-    std::swap(_b, rhs._b);
-    std::swap(_e, rhs._e);
-  }
+    const T *begin() const {
+        return const_cast<my_vector *>(this)->begin();
+    }
+
+    T *end() {
+        return _e;
+    }
+
+    const T *end() const {
+        return const_cast<my_vector *>(this)->end();
+    }
+
+    size_t size() const {
+        return _e - _b;
+    }
+
+    void swap(my_vector &rhs) {
+        std::swap(_b, rhs._b);
+        std::swap(_e, rhs._e);
+    }
 };
