@@ -5,6 +5,7 @@ clean:
 	rm -f *.plist
 	rm -f *.tmp
 	rm -f *.orig
+
 format:
 	astyle Shape1hr.c++
 	astyle Shape2hr.c++
@@ -12,3 +13,4 @@ format:
 	astyle Vector2hr.c++
 	astyle Vector3hr.c++
 	astyle Vector4hr.c++
+	astyle Handle1hr.c++
