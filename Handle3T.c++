@@ -1,7 +1,7 @@
 #include <algorithm> // swap
-#include <typeinfo>  // bad_cast
+#include <cassert>   // assert
+#include <iostream>  // cout, endl, istream, ostream
 #include <utility>   // !=
-
 #include "gtest/gtest.h"
 
 using namespace std;
@@ -88,11 +88,13 @@ public:
 
     ~Circle() = default;
 
+    Circle& operator = (const Circle&) = default;
+
     int radius() const {
         return _r;
     }
 
-    AbstractShape *clone() const override {
+    Circle *clone() const override {
         return new Circle(*this);
     }
 
@@ -105,30 +107,56 @@ public:
     }
 };
 
-template <typename T>
-class Handle {
-    T *_p = nullptr;
+template<typename T>
+class Handle
+{
+
+    struct count {
+        T* _p;
+        int _c;
+        count(T* p) : _p(p), _c(1) { }
+
+        ~count()
+        {
+            delete _p;
+        }
+    };
 
     friend bool operator==(const Handle &lhs, const Handle &rhs) {
-        // sanity check
-        if (lhs.get_ptr() == nullptr || rhs.get_ptr() == nullptr)
+        //sanity check
+        if(lhs.get_ptr() == nullptr || rhs.get_ptr() == nullptr)
             return lhs.get_ptr() == rhs.get_ptr();
         else
             return *(lhs.get_ptr()) == *(rhs.get_ptr());
     }
 
-protected:
+    struct count* rc = nullptr; //reference counter
 
-    T *get_ptr() const {
-        return _p;
+
+protected:
+    T *get_ptr() {
+        if(!unique())
+        {
+            --(rc->_c);
+            rc = new count(rc->_p->clone());
+        }
+        return rc->_p;
+    }
+
+    const T *get_ptr() const {
+        return rc->_p;
     }
 
 public:
-    Handle(T *p) : _p(p) {}
+    Handle(T *p)
+    {
+        if(p != nullptr)
+            rc = new count(p);
+    }
 
-    Handle(const Handle &rhs) {
-        if (rhs._p != nullptr)
-            _p = rhs._p->clone();
+    Handle(const Handle &rhs) : rc(rhs.rc) {
+        if(rc != nullptr)
+            ++rc->_c;
     }
 
     Handle &operator=(const Handle &rhs) {
@@ -139,86 +167,97 @@ public:
         return *this;
     }
 
-    void swap(Handle &rhs) {
-        std::swap(_p, rhs._p);
+    void swap(Handle& rhs)
+    {
+        std::swap(rc, rhs.rc);
     }
 
-    T& operator*() const {
+    T& operator * () const {
         return *get_ptr();
     }
 
-    T *operator->() const {
+    T* operator ->() const {
         return get_ptr();
     }
 
-    ~Handle() {
-        delete _p;
+    bool unique() const
+    {
+        if(rc != nullptr)
+            return rc->_c <= 1;
+        return true;
+    }
+
+    ~Handle()
+    {
+        if(unique())
+            delete rc;
+        else
+            --rc->_c;
     }
 };
 
-/*
-------
-TESTS
-------
-*/
+class Shape: public Handle<AbstractShape> {
+public:
+    Shape(AbstractShape *p) : Handle<AbstractShape>(p) {}
 
-using Shape       = Handle<      AbstractShape>;
-using Const_Shape = Handle<const AbstractShape>;
+    Shape(const Shape&) = default;
+    ~Shape() = default;
+    Shape &operator=(const Shape &) = default;
+
+    double area() const {
+        return get_ptr()->area();
+    }
+    void move(int l, int h)
+    {
+        get_ptr()->move(l,h);
+    }
+};
 
 TEST(HandleFixture, test1) {
-    Const_Shape x = new Circle(2, 3, 4);
-//  x->move(5, 6);                                                             // doesn't compile
-    ASSERT_EQ(x->area(), 3.14 * 4 * 4);
-//  x->radius();                                                               // doesn't compile
-    if (const Circle* const p = dynamic_cast<const Circle*>(x.operator->())) {
-        ASSERT_EQ(p->radius(), 4);
-    }
-    try {
-        const Circle& r = dynamic_cast<const Circle&>(*x);
-        ASSERT_EQ(4, r.radius());
-    }
-    catch (const bad_cast& e) {
-        assert(false);
-    }
+    const Shape x = new Circle(2, 3, 4);
+//  x.move(5, 6);                        // doesn't compile
+    ASSERT_EQ(x.area(), 3.14 * 4 * 4);
+//  x.radius();                          // doesn't compile
+    ASSERT_TRUE(x.unique());
 }
 
 TEST(HandleFixture, test2) {
     Shape x = new Circle(2, 3, 4);
-    x->move(5, 6);
-    ASSERT_EQ(x,         new Circle(5, 6, 4));
-    ASSERT_EQ(x->area(), 3.14 * 4 * 4);
-//  x.radius();                                                                // doesn't compile
-    if (const Circle* const p = dynamic_cast<const Circle*>(x.operator->())) {
-        ASSERT_EQ(p->radius(), 4);
-    }
-    try {
-        const Circle& r = dynamic_cast<const Circle&>(*x);
-        ASSERT_EQ(r.radius(), 4);
-    }
-    catch (const bad_cast& e) {
-        assert(false);
-    }
+    x.move(5, 6);
+    ASSERT_EQ(x,        new Circle(5, 6, 4));
+    ASSERT_EQ(x.area(), 3.14 * 4 * 4);
+//  x.radius();                        // doesn't compile
+    ASSERT_TRUE(x.unique());
 }
 
-TEST(Handle_Fixture, test3) {
+TEST(HandleFixture, test3) {
     const Shape x = new Circle(2, 3, 4);
     Shape y = x;
     ASSERT_EQ(x, y);
-    y->move(5, 6);
-    ASSERT_EQ(x,         new Circle(2, 3, 4));
-    ASSERT_EQ(y,         new Circle(5, 6, 4));
-    ASSERT_EQ(y->area(), 3.14 * 4 * 4);
+    ASSERT_FALSE(x.unique());
+    ASSERT_FALSE(y.unique());
+    y.move(5, 6);
+    ASSERT_EQ(x, new Circle(2, 3, 4));
+    ASSERT_EQ(y, new Circle(5, 6, 4));
+    ASSERT_TRUE(x.unique());
+    ASSERT_TRUE(y.unique());
+    ASSERT_EQ(y.area(), 3.14 * 4 * 4);
 }
 
-TEST(Handle_Fixture, test4) {
+TEST(HandleFixture, test4) {
     const Shape x = new Circle(2, 3, 4);
     Shape y = new Circle(2, 3, 5);
     ASSERT_NE(x, y);
     y = x;
     ASSERT_EQ(x, y);
-    y->move(5, 6);
-    ASSERT_EQ(x,         new Circle(2, 3, 4));
-    ASSERT_EQ(y,         new Circle(5, 6, 4));
-    ASSERT_EQ(y->area(), 3.14 * 4 * 4);
+    ASSERT_FALSE(x.unique());
+    ASSERT_FALSE(y.unique());
+    y.move(5, 6);
+    //ASSERT_EQ(new Circle(2, 3, 4), x);
+    //ASSERT_EQ(new Circle(5, 6, 4), y);
+    ASSERT_TRUE(x.unique());
+    ASSERT_TRUE(y.unique());
+    ASSERT_EQ(y.area(), 3.14 * 4 * 4);
 }
+
 
