@@ -14,3 +14,4 @@ format:
 	astyle Vector3hr.c++
 	astyle Vector4hr.c++
 	astyle Handle1hr.c++
+	astyle Handle2T.c++
